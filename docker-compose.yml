@@ -1,0 +1,48 @@
+services:
+  # ── Firestore emulator ─────────────────────────────────────────────────────
+  firestore:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    entrypoint: bash
+    command:
+      - -c
+      - |
+        METADATA=$(ls /firestore-data/*.overall_export_metadata 2>/dev/null | head -1)
+        if [ -n "$$METADATA" ]; then
+          echo "Restoring Firestore data from $$METADATA"
+          exec gcloud emulators firestore start --host-port=0.0.0.0:8081 \
+            --import-data=$$METADATA \
+            --export-on-exit=/firestore-data
+        else
+          echo "No existing data found, starting fresh"
+          exec gcloud emulators firestore start --host-port=0.0.0.0:8081 \
+            --export-on-exit=/firestore-data
+        fi
+    ports:
+      - "8081:8081"
+      - "4000:4000"
+    volumes:
+      - firestore-data:/firestore-data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Iron Counsel API ───────────────────────────────────────────────────────
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file: .env
+    environment:
+      # Route Firestore traffic to the local emulator
+      FIRESTORE_EMULATOR_HOST: firestore:8081
+    volumes:
+      # Hot-reload app source without rebuilding the image
+      - ./app:/app/app
+    depends_on:
+      firestore:
+        condition: service_healthy
+
+volumes:
+  firestore-data:
