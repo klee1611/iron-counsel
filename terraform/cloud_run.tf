@@ -25,6 +25,13 @@ resource "google_cloud_run_v2_service" "iron_counsel" {
         container_port = 8080
       }
 
+      resources {
+        limits = {
+          memory = "1Gi"
+          cpu    = "1"
+        }
+      }
+
       # Non-secret env vars
       env {
         name  = "GCP_PROJECT_ID"
