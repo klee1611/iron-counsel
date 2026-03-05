@@ -1,0 +1,17 @@
+# Copy to terraform.tfvars and fill in your values (this file is gitignored)
+
+project_id              = "your-gcp-project-id"
+region                  = "us-central1"
+github_repo             = "your-github-username/iron-counsel"
+cloud_run_service_name  = "iron-counsel"
+ar_repository_id        = "iron-counsel"
+allowed_user_ids        = ""              # leave empty to allow everyone, or "123,456"
+tf_state_bucket         = "your-tf-state-bucket"
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# GitHub PAT: https://github.com/settings/tokens
+#   Fine-grained token → your repo → Permissions: Actions variables = Read & write
+github_token            = "your-github-pat"
+groq_api_key            = "your-groq-api-key"           # https://console.groq.com
+telegram_token          = "your-telegram-bot-token"
+telegram_webhook_secret = "your-random-webhook-secret"

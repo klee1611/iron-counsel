@@ -1,0 +1,16 @@
+# Terraform state (never commit — use remote backend)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Backend config with bucket name (may contain project info)
+*.tfbackend
+
+# Variable files with secrets
+terraform.tfvars
+*.auto.tfvars
+
+# Crash log files
+crash.log
+crash.*.log
