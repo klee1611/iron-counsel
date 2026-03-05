@@ -9,6 +9,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
+# Pre-download fastembed ONNX model so Cloud Run doesn't fetch it at runtime
+RUN /app/.venv/bin/python -c "from fastembed import TextEmbedding; TextEmbedding('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')"
+
 # Copy application source
 COPY app/ ./app/
 
