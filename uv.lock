@@ -510,18 +510,19 @@ wheels = [
 
 [[package]]
 name = "google-cloud-firestore"
-version = "2.20.1"
+version = "2.25.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "google-cloud-core" },
+    { name = "grpcio" },
     { name = "proto-plus" },
     { name = "protobuf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/51/e6/4be9b2c2544a159a0bb9f3fa3b82148f8010014846c52dd73c7caae42772/google_cloud_firestore-2.20.1.tar.gz", hash = "sha256:5970e1e6b9fd1c2661fa91d4bb6160110699a2456ec4d08c33199aca4aab28a0", size = 511506, upload-time = "2025-02-26T20:39:55.855Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/84/4acfdc4d29de4eae4dd6ac1267611421c2a36975c473b2a86fd2e9752e75/google_cloud_firestore-2.25.0.tar.gz", hash = "sha256:9bca3b504f5473048eeab603b9bec69bbeffcdddc4e5fc65cdcc01b449628fc0", size = 621860, upload-time = "2026-03-12T19:31:06.062Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/58/a95a9c66cbdd630380cc720a32bcfc902254f62f987cd10192d6c28f5ebe/google_cloud_firestore-2.20.1-py2.py3-none-any.whl", hash = "sha256:6cae93e9b23fd1f5cf19dcc7417ba34712388a41692158d4396c63309b287779", size = 358639, upload-time = "2025-02-26T20:39:53.411Z" },
+    { url = "https://files.pythonhosted.org/packages/30/f2/29abde0fcd98f32ce61fc2064a1a3e39b4e64746537409f8ea5521f79afb/google_cloud_firestore-2.25.0-py3-none-any.whl", hash = "sha256:c933a7696b7dd160953d60413ab9481387f6dd8367e77dd750d841689773104a", size = 416714, upload-time = "2026-03-12T19:30:36.674Z" },
 ]
 
 [[package]]
@@ -797,7 +798,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = "==0.115.8" },
     { name = "fastembed", specifier = ">=0.4.0" },
-    { name = "google-cloud-firestore", specifier = "==2.20.1" },
+    { name = "google-cloud-firestore", specifier = "==2.25.0" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "langchain", specifier = "==0.3.19" },
     { name = "langchain-community", specifier = ">=0.3.0" },
