@@ -3,8 +3,19 @@ name: Deploy
 on:
   push:
     branches: [master]
+    paths:
+      - "app/**"
+      - "Dockerfile"
+      - "pyproject.toml"
+      - "uv.lock"
   pull_request:
     branches: [master]
+    paths:
+      - "app/**"
+      - "Dockerfile"
+      - "pyproject.toml"
+      - "uv.lock"
+  workflow_dispatch:
 
 # Required for Workload Identity Federation
 permissions:
