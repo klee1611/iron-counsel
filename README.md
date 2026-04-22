@@ -13,6 +13,7 @@
 - [Stack](#stack)
 - [Quick Start](#quick-start)
 - [How It Works](#how-it-works)
+- [Demo](#demo)
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
 - [Local Development](#local-development)
@@ -142,54 +143,15 @@ User message → Telegram → /webhook (Cloud Run)
 
 ---
 
+## Demo
+
+https://github.com/klee1611/iron-counsel/releases/download/assets/Iron.counsel.screen.recording.MP4
+
+---
+
 ## Architecture
 
-```mermaid
-flowchart TD
-    U(["👤 User"])
-
-    subgraph telegram["Telegram"]
-        TG["Bot API"]
-    end
-
-    subgraph gcp["Google Cloud Platform"]
-        subgraph cloudrun["Cloud Run"]
-            API["FastAPI\n/webhook"]
-            EMB["fastembed · ONNX · local\nsentence-transformers 384-dim"]
-        end
-        subgraph firestore["Firestore"]
-            FQ[("quotes\n24 k+ GoT dialogues")]
-            FC[("conversations\nper-chat history")]
-        end
-        SM[("🔐 Secret Manager")]
-        AR[("📦 Artifact Registry")]
-    end
-
-    subgraph groq["Groq Cloud"]
-        LLM["LLaMA 3.3 70B"]
-    end
-
-    subgraph cicd["CI/CD — GitHub Actions"]
-        GHA["deploy.yml\nTest → Build → Push → Deploy"]
-    end
-
-    U       -- "① message"                          --> TG
-    TG      -- "② POST /webhook"                    --> API
-    API     -- "③ load last 10 msgs"                --> FC
-    API     -- "④ embed query"                      --> EMB
-    EMB     -- "⑤ 384-dim vector"                   --> API
-    API     -- "⑥ KNN cosine search"                --> FQ
-    FQ      -- "⑦ top-5 quotes"                     --> API
-    API     -- "⑧ system + quotes + history + query" --> LLM
-    LLM     -- "⑨ EN + ZH response"                 --> API
-    API     -- "⑩ save both turns"                  --> FC
-    API     -- "⑪ reply"                            --> TG
-    TG      -- "⑫ display"                          --> U
-
-    SM      -. "inject secrets at startup"          .-> API
-    GHA     -- "push image"                         --> AR
-    GHA     -- "deploy"                             --> API
-```
+![Iron Counsel Architecture](assets/Iron-counsel%20architecture.png)
 
 ---
 
