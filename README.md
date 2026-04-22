@@ -2,11 +2,62 @@
 
 > *"A mind needs books as a sword needs a whetstone."* — Tyrion Lannister
 
-A Telegram bot powered by **RAG (Retrieval-Augmented Generation)** that responds as
-**The Iron Counsel** — a darkly absurdist strategic advisor from the Seven Kingdoms
-now inexplicably tasked with solving your mundane 21st-century problems.
-Every answer is structured as ⚔️ The Decree / 📜 The Counsel / ☠️ The Warning,
-delivered in both **English and Traditional Chinese**, weaving in real GoT character quotes.
+**Iron Counsel** is a Telegram bot that answers your questions as a darkly absurdist strategic advisor from the Seven Kingdoms — dragged inexplicably into the 21st century to solve your mundane problems. It uses **RAG (Retrieval-Augmented Generation)** to retrieve real Game of Thrones character quotes and weave them into every response.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Example Interaction](#example-interaction)
+- [Stack](#stack)
+- [Quick Start](#quick-start)
+- [How It Works](#how-it-works)
+- [Prerequisites](#prerequisites)
+- [Local Development](#local-development)
+- [Local Testing with Docker Compose](#local-testing-with-docker-compose)
+- [Phase 1: Infrastructure (Terraform)](#phase-1-infrastructure-terraform)
+- [Phase 2: Data Ingestion](#phase-2-data-ingestion)
+- [Phase 3: CI/CD (Continuous Deployment)](#phase-3-cicd-continuous-deployment)
+- [Configuration Reference](#configuration-reference)
+- [Project Structure](#project-structure)
+
+---
+
+## Features
+
+- **RAG over 24k+ GoT quotes** — every response is grounded in real dialogue from all seasons, retrieved by vector similarity at query time
+- **Structured response format** — every reply follows a fixed three-part structure: ⚔️ The Decree, 📜 The Counsel, ☠️ The Warning
+- **Bilingual by default** — all responses are delivered in both **English and Traditional Chinese** (繁體中文), with quotes translated in-context
+- **Persistent conversation history** — each chat's last 10 exchanges are stored in Firestore and included in every prompt for continuity
+- **Local embeddings, no API cost** — both ingestion and query-time embeddings run locally via [fastembed](https://github.com/qdrant/fastembed) (ONNX runtime), with no external embedding API
+- **User allowlist** — optionally restrict access to specific Telegram user IDs via `ALLOWED_USER_IDS`
+- **Zero-secret CI/CD** — GitHub Actions deploys via Workload Identity Federation; no credentials stored in GitHub
+- **Fully Terraformed** — all GCP resources (Cloud Run, Firestore, Artifact Registry, Secret Manager, IAM, WIF) and GitHub Actions variables are provisioned in one `terraform apply`
+
+---
+
+## Example Interaction
+
+**User:** *My coworker keeps scheduling 9am meetings and I'm not a morning person.*
+
+**Iron Counsel:**
+
+> ⚔️ **The Decree**
+> Your coworker is staging a coup. Treat it accordingly.
+>
+> 📜 **The Counsel**
+> As Cersei Lannister once warned, *"When you play the game of thrones, you win or you die."* You are playing it every morning at 9am, half-asleep, and losing. The Red Wedding began with misplaced trust at a feast — yours begins with misplaced trust in a calendar invite. Cancel the next meeting. Propose noon. Cite "strategic redeployment of cognitive resources." They will respect the audacity or fear the implication. Either serves you.
+>
+> ☠️ **The Warning**
+> Ignore this counsel and you will spend the next decade half-present in rooms that decide your fate while you silently wish for the sweet mercy of the Night King.
+>
+> ────────────────────
+>
+> ⚔️ **法令**
+> 你的同事正在發動政變。以此對待之。
+>
+> *(... full Traditional Chinese response follows)*
 
 ---
 
@@ -57,6 +108,36 @@ make dev
 ```
 
 Run `make help` to see all available commands.
+
+---
+
+## How It Works
+
+```
+User message → Telegram → /webhook (Cloud Run)
+                                │
+                    Load conversation history (Firestore)
+                                │
+                    Embed query locally (fastembed ONNX)
+                                │
+                    KNN search → top-5 GoT quotes (Firestore)
+                                │
+                    Build prompt: system + quotes + history + query
+                                │
+                    LLaMA 3.3 70B via Groq → bilingual response
+                                │
+                    Save both turns to Firestore
+                                │
+                    Send reply → Telegram → User
+```
+
+1. **Webhook** — Telegram POSTs each message to `/webhook` on Cloud Run; the secret token header is validated before processing.
+2. **History** — The last 10 messages for that chat are loaded from Firestore to give the LLM conversational context.
+3. **Embed** — The user's query is embedded locally using `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` via fastembed (ONNX runtime, no API call, multilingual including Mandarin).
+4. **Retrieve** — A native KNN cosine search in Firestore returns the top-5 most semantically similar GoT quotes from the 24k+ indexed dialogues.
+5. **Generate** — A structured prompt (system persona + retrieved quotes + chat history + user query) is sent to LLaMA 3.3 70B on Groq. The model produces the three-section bilingual response.
+6. **Persist** — Both the user turn and the assistant reply are appended to Firestore for future history.
+7. **Reply** — The response is sent back via the Telegram Bot API.
 
 ---
 
@@ -331,20 +412,6 @@ curl -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook" \
   -H "Content-Type: application/json" \
   -d "{\"url\": \"${SERVICE_URL}/webhook\", \"secret_token\": \"${TELEGRAM_WEBHOOK_SECRET}\"}"
 ```
-
----
-
-## How It Works
-
-1. User sends a message to the Telegram bot.
-2. Telegram POSTs the update to `/webhook` on Cloud Run.
-3. The FastAPI handler loads the user's **conversation history** from Firestore.
-4. The user's query is **embedded locally** using `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` via fastembed (ONNX, no API call, multilingual).
-5. A **KNN vector search** finds the top-5 most relevant GoT quotes in Firestore.
-6. A prompt is built: system instructions + retrieved quotes + chat history + user query.
-7. **LLaMA 3.3 70B** (via Groq) generates a response, weaving the quotes into its answer.
-8. Both the user message and the assistant reply are **saved to Firestore** for future context.
-9. The response is sent back to the user via the Telegram Bot API.
 
 ---
 
