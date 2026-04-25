@@ -9,11 +9,10 @@
 ## Table of Contents
 
 - [Features](#features)
-- [Example Interaction](#example-interaction)
+- [Demo](#demo)
 - [Stack](#stack)
 - [Quick Start](#quick-start)
 - [How It Works](#how-it-works)
-- [Demo](#demo)
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
 - [Local Development](#local-development)
@@ -39,27 +38,9 @@
 
 ---
 
-## Example Interaction
+## Demo
 
-**User:** *My coworker keeps scheduling 9am meetings and I'm not a morning person.*
-
-**Iron Counsel:**
-
-> ⚔️ **The Decree**
-> Your coworker is staging a coup. Treat it accordingly.
->
-> 📜 **The Counsel**
-> As Cersei Lannister once warned, *"When you play the game of thrones, you win or you die."* You are playing it every morning at 9am, half-asleep, and losing. The Red Wedding began with misplaced trust at a feast — yours begins with misplaced trust in a calendar invite. Cancel the next meeting. Propose noon. Cite "strategic redeployment of cognitive resources." They will respect the audacity or fear the implication. Either serves you.
->
-> ☠️ **The Warning**
-> Ignore this counsel and you will spend the next decade half-present in rooms that decide your fate while you silently wish for the sweet mercy of the Night King.
->
-> ────────────────────
->
-> ⚔️ **法令**
-> 你的同事正在發動政變。以此對待之。
->
-> *(... full Traditional Chinese response follows)*
+https://github.com/user-attachments/assets/c083d1ab-31bf-4eae-84df-ffdd0db60e34
 
 ---
 
@@ -140,12 +121,6 @@ User message → Telegram → /webhook (Cloud Run)
 5. **Generate** — A structured prompt (system persona + retrieved quotes + chat history + user query) is sent to LLaMA 3.3 70B on Groq. The model produces the three-section bilingual response.
 6. **Persist** — Both the user turn and the assistant reply are appended to Firestore for future history.
 7. **Reply** — The response is sent back via the Telegram Bot API.
-
----
-
-## Demo
-
-https://github.com/klee1611/iron-counsel/releases/download/assets/Iron.counsel.screen.recording.MP4
 
 ---
 
