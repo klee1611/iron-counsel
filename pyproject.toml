@@ -5,7 +5,7 @@ description = "Telegram RAG bot — Game of Thrones quotes via Gemma 3 + Firesto
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi==0.139.2",
+    "fastapi==0.140.13",
     "google-cloud-firestore==2.28.0",
     "httpx==0.28.1",
     "langchain==0.3.19",
