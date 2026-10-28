@@ -49,7 +49,7 @@ async def test_answer_calls_llm_with_correct_message_order(mocker):
     # Mock embeddings
     mocker.patch(
         "app.rag.get_embeddings",
-        return_value=mocker.Mock(embed_query=mocker.Mock(return_value=[0.1] * 768)),
+        return_value=mocker.Mock(embed_query=mocker.Mock(return_value=[0.1] * 384)),
     )
     # Mock Firestore quote retrieval
     mocker.patch(
@@ -84,7 +84,7 @@ async def test_answer_calls_llm_with_correct_message_order(mocker):
 async def test_answer_with_no_history(mocker):
     mocker.patch(
         "app.rag.get_embeddings",
-        return_value=mocker.Mock(embed_query=mocker.Mock(return_value=[0.0] * 768)),
+        return_value=mocker.Mock(embed_query=mocker.Mock(return_value=[0.0] * 384)),
     )
     mocker.patch("app.rag.search_quotes", return_value=[])
     fake_llm = mocker.AsyncMock()
@@ -101,11 +101,11 @@ async def test_answer_with_no_history(mocker):
     assert isinstance(messages[1], HumanMessage)
 
 
-async def test_answer_system_prompt_contains_bilingual_instruction(mocker):
-    """Verify the system prompt enforces the bilingual English + Mandarin rule."""
+async def test_answer_system_prompt_is_concise_and_matches_user_language(mocker):
+    """Verify the prompt asks for concise replies in the user's language."""
     mocker.patch(
         "app.rag.get_embeddings",
-        return_value=mocker.Mock(embed_query=mocker.Mock(return_value=[0.0] * 768)),
+        return_value=mocker.Mock(embed_query=mocker.Mock(return_value=[0.0] * 384)),
     )
     mocker.patch("app.rag.search_quotes", return_value=[])
     fake_llm = mocker.AsyncMock()
@@ -115,5 +115,6 @@ async def test_answer_system_prompt_contains_bilingual_instruction(mocker):
     await answer("Hello", [])
 
     system_content = fake_llm.ainvoke.call_args[0][0][0].content
-    assert "Traditional Chinese" in system_content
-    assert "English" in system_content
+    assert "Match the language of the user's latest message" in system_content
+    assert "3–5 sentences" in system_content
+    assert "Do not provide a second translation" in system_content
