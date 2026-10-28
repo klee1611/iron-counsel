@@ -2,7 +2,7 @@
 
 > *"A mind needs books as a sword needs a whetstone."* — Tyrion Lannister
 
-**Iron Counsel** is a Telegram bot that answers your questions as a darkly absurdist strategic advisor from the Seven Kingdoms — dragged inexplicably into the 21st century to solve your mundane problems. It uses **RAG (Retrieval-Augmented Generation)** to retrieve real Game of Thrones character quotes and weave them into every response.
+**Iron Counsel** is a Telegram bot that answers your questions as a darkly absurdist strategic advisor from the Seven Kingdoms — dragged inexplicably into the 21st century to solve your mundane problems. It uses **RAG (Retrieval-Augmented Generation)** to retrieve real Game of Thrones script lines as raw material for creative replies.
 
 ---
 
@@ -28,9 +28,9 @@
 ## Features
 
 - **RAG over 24k+ GoT quotes** — every response is grounded in real dialogue from all seasons, retrieved by vector similarity at query time
-- **Structured response format** — every reply follows a fixed three-part structure: ⚔️ The Decree, 📜 The Counsel, ☠️ The Warning
-- **Bilingual by default** — all responses are delivered in both **English and Traditional Chinese** (繁體中文), with quotes translated in-context
-- **Persistent conversation history** — each chat's last 10 exchanges are stored in Firestore and included in every prompt for continuity
+- **Concise, language-matched replies** — answers address the question first, then re-contextualize a GoT line as darkly absurd humor in the user's language
+- **Adaptive tone** — serious questions get practical guidance with restrained humor; light questions get more ridiculous advice
+- **Short conversation context** — each chat's latest 4 messages are included for follow-ups
 - **Local embeddings, no API cost** — both ingestion and query-time embeddings run locally via [fastembed](https://github.com/qdrant/fastembed) (ONNX runtime), with no external embedding API
 - **User allowlist** — optionally restrict access to specific Telegram user IDs via `ALLOWED_USER_IDS`
 - **Zero-secret CI/CD** — GitHub Actions deploys via Workload Identity Federation; no credentials stored in GitHub
@@ -105,9 +105,9 @@ User message → Telegram → /webhook (Cloud Run)
                                 │
                     KNN search → top-5 GoT quotes (Firestore)
                                 │
-                    Build prompt: system + quotes + history + query
+                    Build prompt: focused style + quotes + recent history + query
                                 │
-                    LLaMA 3.3 70B via Groq → bilingual response
+                    LLaMA 3.3 70B via Groq → concise, language-matched response
                                 │
                     Save both turns to Firestore
                                 │
@@ -115,10 +115,10 @@ User message → Telegram → /webhook (Cloud Run)
 ```
 
 1. **Webhook** — Telegram POSTs each message to `/webhook` on Cloud Run; the secret token header is validated before processing.
-2. **History** — The last 10 messages for that chat are loaded from Firestore to give the LLM conversational context.
+2. **History** — The latest 4 messages for that chat are loaded from Firestore to support short follow-ups.
 3. **Embed** — The user's query is embedded locally using `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` via fastembed (ONNX runtime, no API call, multilingual including Mandarin).
 4. **Retrieve** — A native KNN cosine search in Firestore returns the top-5 most semantically similar GoT quotes from the 24k+ indexed dialogues.
-5. **Generate** — A structured prompt (system persona + retrieved quotes + chat history + user query) is sent to LLaMA 3.3 70B on Groq. The model produces the three-section bilingual response.
+5. **Generate** — A focused prompt (persona + retrieved quotes + recent history + user query) is sent to LLaMA 3.3 70B on Groq. The model answers in the user's language, leads with a direct answer, and adds a concise comedic re-contextualization.
 6. **Persist** — Both the user turn and the assistant reply are appended to Firestore for future history.
 7. **Reply** — The response is sent back via the Telegram Bot API.
 
@@ -418,7 +418,7 @@ curl -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook" \
 | `LLM_MODEL_NAME` | Groq model name | `llama-3.3-70b-versatile` |
 | `EMBEDDING_MODEL_NAME` | fastembed model name | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
 | `RETRIEVER_TOP_K` | Number of quotes to retrieve per query | `5` |
-| `CONVERSATION_HISTORY_LIMIT` | Max past messages to include in context | `10` |
+| `CONVERSATION_HISTORY_LIMIT` | Max recent messages to include in context | `4` |
 
 ---
 

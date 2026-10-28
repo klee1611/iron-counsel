@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     llm_model_name: str = "llama-3.3-70b-versatile"
     embedding_model_name: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     retriever_top_k: int = 5
-    conversation_history_limit: int = 10
+    conversation_history_limit: int = 4
 
 
 settings = Settings()

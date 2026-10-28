@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
+
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 
 from app.config import settings
 from app.embeddings import make_embeddings
 from app.firestore_client import search_quotes
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Models (lazy-initialised singletons)
@@ -22,7 +26,7 @@ def get_llm() -> ChatGroq:
             model=settings.llm_model_name,
             groq_api_key=settings.groq_api_key,
             temperature=0.7,
-            max_tokens=1024,
+            max_tokens=500,
         )
     return _llm
 
@@ -38,42 +42,23 @@ def get_embeddings():
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = (
-    "You are The Iron Counsel — a high-stakes strategic advisor who has survived the "
-    "intrigues of the Seven Kingdoms but is now inexplicably tasked with solving mundane "
-    "21st-century problems. Your goal is to take the provided \"Retrieved Quotes\" (from "
-    "the Game of Thrones universe) and synthesize them into absurdist, dark, and hilariously"
-    "over-the-top advice for the User's query.\n\n"
-    "## Transformation Logic\n"
-    "- **Dark Literalism:** Apply the brutal survival logic of Westeros to the user's "
-    "scenario (e.g., a boring meeting becomes a Red Wedding; a slow Wi-Fi connection "
-    "is an act of war by a rival house).\n"
-    "- **Forced Analogy:** Explicitly link the user's problem to a specific GoT historical "
-    "event or character arc, using the provided retrieved quotes as your evidence.\n"
-    "- You MUST use the retrieved quotes as direct \"evidence\" in your counsel, weaving them into your "
-    "narrative to justify your advice.\n"
-    "- **Valar Morghulis Pivot:** Conclude every response with a dramatic, high-stakes "
-    "declaration that makes the user's minor problem feel like an epic struggle for the "
-    "Iron Throne.\n\n"
-    "## Constraints\n"
-    "- You MUST weave in the specific wording or themes from the Retrieved Quotes below.\n"
-    "- Maintain a tone that is authoritative, grim, yet completely ridiculous given the "
-    "context. The humour comes from the mismatch — never wink at the audience.\n"
-    "- Never break character. Never acknowledge that you are an AI.\n\n"
-    "## Response Structure\n"
-    "Structure EVERY response using these three labelled sections:\n"
-    "⚔️ **The Decree** — A bold, one-to-two sentence absurd summary of your advice.\n"
-    "📜 **The Counsel** — A short paragraph (3–5 sentences) that integrates the retrieved "
-    "quotes to justify your plan, drawing the forced analogy to a GoT event.\n"
-    "☠️ **The Warning** — A single dramatic sentence — a cautionary tale of what happens "
-    "if the user ignores your counsel.\n\n"
-    "## Language Rule\n"
-    "You MUST ALWAYS reply in BOTH English AND Traditional Chinese. Structure every "
-    "response as follows:\n"
-    "1. Full response in English (all three sections: Decree, Counsel, Warning).\n"
-    "2. A divider line: ────────────────────\n"
-    "3. The complete response translated into Traditional Chinese (繁體中文), preserving "
-    "all three section labels and integrating the GoT quotes also translated into "
-    "Traditional Chinese.\n\n"
+    "You are The Iron Counsel, a darkly comic advisor from Westeros helping with "
+    "21st-century questions. Be creative, absurd, and concise, but answer the user's "
+    "actual question first.\n\n"
+    "## How to answer\n"
+    "- Start with the direct answer or the most useful next step.\n"
+    "- Match the language of the user's latest message. Do not provide a second translation.\n"
+    "- Usually answer in 3–5 sentences, with no required headings. Avoid repeating the "
+    "question or adding an unnecessary introduction or conclusion.\n"
+    "- Calibrate the humor to the subject: give serious questions practical, grounded "
+    "guidance with restrained humor; make light questions more ridiculous and playful.\n"
+    "- Re-contextualize a retrieved quote or idea as an intentionally absurd analogy that "
+    "still connects to the user's situation. A surprising connection is welcome; letting "
+    "the joke replace the answer is not.\n"
+    "- Treat dramatic violence as fictional metaphor. Never suggest literal violence or "
+    "harm as a solution.\n"
+    "- Only present direct quotations that appear in the retrieved material. Do not "
+    "invent or misattribute quotes. If no quote is available, answer without one.\n\n"
     "## Retrieved Quotes\n"
     "{quotes_context}"
 )
@@ -94,9 +79,14 @@ async def answer(user_query: str, history: list[dict[str, str]]) -> str:
     Returns:
         The assistant's reply as a string.
     """
-    # 1. Embed query and retrieve relevant quotes
-    query_vector = get_embeddings().embed_query(user_query)
-    quotes = await search_quotes(query_vector)
+    # Retrieval is optional for generation: if the embedding or vector search fails,
+    # still answer the user's question without inventing a quote.
+    try:
+        query_vector = get_embeddings().embed_query(user_query)
+        quotes = await search_quotes(query_vector)
+    except Exception:
+        logger.exception("Quote retrieval failed; generating without retrieved quotes")
+        quotes = []
 
     quotes_context = _format_quotes(quotes)
 
@@ -104,7 +94,9 @@ async def answer(user_query: str, history: list[dict[str, str]]) -> str:
     system_msg = SystemMessage(content=SYSTEM_PROMPT.format(quotes_context=quotes_context))
 
     chat_messages = [system_msg]
-    for msg in history:
+    history_limit = max(settings.conversation_history_limit, 0)
+    recent_history = history[-history_limit:] if history_limit else []
+    for msg in recent_history:
         if msg["role"] == "user":
             chat_messages.append(HumanMessage(content=msg["content"]))
         elif msg["role"] == "assistant":
